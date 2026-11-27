@@ -1,0 +1,40 @@
+
+# 1. Create Docker network
+docker network create three-tier
+
+# 2. Run MySQL database
+docker run -d \
+--name database \
+--network three-tier \
+-e MYSQL_ROOT_PASSWORD=12345 \
+-e MYSQL_DATABASE=mydb \
+-v dbdata:/var/lib/mysql \
+mysql:8
+
+# 3. Wait for MySQL to become ready
+until docker exec database mysqladmin ping -h localhost -uroot -p12345 --silent; do
+    sleep 2
+done
+
+# 4. Build backend image
+docker build -t backend ./backend
+
+# 5. Run backend container
+docker run -d \
+--name backend2 \
+--network three-tier \
+-p 3000:3000 \
+backend
+
+# 6. Build frontend image
+docker build -t frontend ./frontend
+
+# 7. Run frontend container
+docker run -d \
+--name frontend \
+--network three-tier \
+-p 8080:80 \
+frontend
+
+# 8. Check running containers
+docker ps
